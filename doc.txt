@@ -1,0 +1,6 @@
+Emitters
+------------
+AccessoryRequest - all
+CaseFile - all
+CaseFileID - by ID
+CaseFilePatient - by Patient ID
