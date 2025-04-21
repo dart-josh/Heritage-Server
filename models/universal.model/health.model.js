@@ -48,7 +48,7 @@ const healthSchema = new mongoose.Schema(
     done: { type: Boolean, default: false },
     note: { type: String },
     doctor_note: { type: String },
-    patient: { type: mongoose.Schema.Types.ObjectId, ref: "PhysioPatient" },
+    patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },

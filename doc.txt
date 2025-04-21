@@ -4,3 +4,16 @@ AccessoryRequest - all
 CaseFile - all
 CaseFileID - by ID
 CaseFilePatient - by Patient ID
+Equipment - new
+EquipmentD - del
+Patient - id
+PatientD - del
+User - add/update
+Customer - add/update
+Doctor - add/update
+CustomerD - del
+UserD - del
+health_data - add, update, finish, delete, delete_all --> (new method)
+accessory - create, update, delete
+sales_record - create, update, delete
+clinic_variables - [with data]

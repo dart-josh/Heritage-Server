@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const equipmentSchema = new mongoose.Schema({
-  name: {
+  equipmentName: {
     type: String,
     required: true,
   },
@@ -13,6 +13,9 @@ const equipmentSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
+  },
+  costing: {
+    type: Number,
   },
   status: {
     type: String,

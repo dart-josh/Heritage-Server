@@ -1,0 +1,130 @@
+import mongoose from "mongoose";
+
+const treatmentInfoSchema = new mongoose.Schema({
+  last_bp: String,
+  last_bp_p: String,
+  last_treatment_date: Date,
+  last_treatment_date_p: Date,
+  current_treatment_date: Date,
+  treatment_elapse: Boolean,
+  assessment_completed: Boolean,
+  ongoing_treatment: Boolean,
+  assessment_date: Date,
+  assessment_paid: Boolean,
+  skip_assessment: Boolean,
+});
+
+const clinicInfoSchema = new mongoose.Schema({
+  total_session: { type: Number },
+  frequency: { type: String },
+  completed_session: { type: Number },
+  paid_session: { type: Number },
+  cost_per_session: { type: Number },
+  amount_paid: { type: Number },
+  floating_amount: { type: Number },
+});
+
+const cliniVariablesSchema = new mongoose.Schema({
+  can_treat: { type: Boolean, default: false },
+  treatment_duration: { type: String },
+  start_time: {Date},
+  end_time: {Date},
+});
+
+const patientSchema = new mongoose.Schema({
+  patient_id: { type: String, required: true, unique: true },
+  reg_date: { type: Date },
+  user_status: { type: Boolean, default: true },
+  f_name: { type: String, required: true },
+  m_name: { type: String },
+  l_name: { type: String },
+  user_image: { type: String },
+  phone_1: { type: String },
+  phone_2: { type: String },
+  email: { type: String },
+  address: { type: String },
+  gender: { type: String },
+  dob: { type: String },
+  age: { type: String },
+  occupation: { type: String },
+  nature_of_work: { type: String },
+  hykau: { type: String },
+  hykau_others: { type: String },
+  hmo: { type: String },
+  hmo_id: { type: String },
+  baseline_done: { type: Boolean, default: false },
+  sponsor: [
+    {
+      name: { type: String, required: true },
+      phone: { type: String },
+      address: { type: String },
+      role: { type: String, required: true },
+    },
+  ],
+  refferal_code: { type: String },
+  current_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+  last_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+  treatment_info: {
+    type: Map,
+    of: { type: treatmentInfoSchema },
+  },
+  clinic_info: {
+    type: Map,
+    of: { type: clinicInfoSchema },
+  },
+  clinic_variables: {
+    type: Map,
+    of: { type: cliniVariablesSchema },
+  },
+  assessment_info: [
+    {
+      case_select: { type: String, required: true },
+      case_select_others: { type: String },
+      case_description: { type: String },
+      diagnosis: { type: String },
+      case_type: { type: String },
+      treatment_type: { type: String },
+      equipment: [{ type: mongoose.Schema.Types.ObjectId, ref: "Equipment" }],
+      assessment_date: { type: Date },
+    },
+  ],
+  clinic_history: [
+    {
+      history_id: { type: String, required: true },
+      hist_type: {
+        type: String,
+        required: true,
+        enum: ["assessment payment", "session payment", "session setup"],
+      },
+      amount: { type: Number },
+      amount_b4_discount: { type: Number },
+      date: { type: Date, required: true },
+      session_paid: { type: Number },
+      cost_p_session: { type: Number },
+      old_float: { type: Number },
+      new_float: { type: Number },
+      session_frequency: { type: String },
+    },
+  ],
+  invoices: [
+    {
+      invoice_id: { type: String, required: true },
+      invoice_type: { type: String, required: true },
+      amount: { type: Number },
+      discount: { type: Number },
+      date: { type: Date, required: true },
+      total_session: { type: Number },
+      frequency: { type: String },
+      completed_session: { type: Number },
+      paid_session: { type: Number },
+      cost_per_session: { type: Number },
+      amount_paid: { type: Number },
+      floating_amount: { type: Number },
+    },
+  ],
+  total_amount_paid: { type: Number },
+});
+
+const Patient = mongoose.model("Patient", patientSchema);
+
+export default Patient;

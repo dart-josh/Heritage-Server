@@ -1,0 +1,29 @@
+-------------
+GETTERS
+-------------
+DOCTOR
+------------
+get_patient_by_id(patient_data-clinic_info, assessment_data,),
+get_doctor_by_id(pending_patients,ongoing_patients,my_patients),
+
+get_case_file_by_patient, get_health_by_patient_id,
+get_all_equipments, get_all_accessories,
+
+
+---------- 
+USER
+----------
+get_all_patients,
+get_all_accessories, 
+get_sales_record, get_sales_record_by_date,
+get_health_by_patient_id, get_case_file_by_patient,
+get_all_customers,
+get_all_doctors
+get_all_accessory_requests,
+
+
+---------
+ADMIN
+---------
+get_all_users,
+get_all_case_files,

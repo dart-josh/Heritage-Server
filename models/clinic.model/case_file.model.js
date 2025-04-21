@@ -4,7 +4,7 @@ const caseFileSchema = new mongoose.Schema(
   {
     patient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "PhysioPatient",
+      ref: "Patient",
       required: true,
     },
     doctor: {
@@ -13,8 +13,8 @@ const caseFileSchema = new mongoose.Schema(
       required: true,
     },
 
-    bp_reading: { type: String},
-    note: { type: String},
+    bp_reading: { type: String },
+    note: { type: String },
     remarks: { type: String },
     case_type: { type: String, required: true },
 
