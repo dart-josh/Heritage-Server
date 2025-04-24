@@ -4,7 +4,7 @@ import CaseFile from "../models/clinic.model/case_file.model.js";
 import Equipement from "../models/clinic.model/equipment.model.js";
 import Patient from "../models/clinic.model/patient.model.js";
 import Accessory from "../models/sales.model/accessory.model.js";
-import { generate_nano_id } from "../utils/utils.js";
+import { generate_nano_id, getTimezoneOffset } from "../utils/utils.js";
 import { io } from "../socket/socket.js";
 import Equipment from "../models/clinic.model/equipment.model.js";
 import Doctor from "../models/user.model/doctor.model.js";
@@ -56,15 +56,44 @@ export const get_case_file_by_patient = async (req, res) => {
 };
 
 // get case file by date
-export const get_case_file_by_date = async (req, res) => {
-  const { patient, treatment_date } = req.body;
+export const get_case_file_by_id = async (req, res) => {
+  const { patient, case_id } = req.body;
+  // check patient
+  if (!patient) {
+    return res.status(500).json({ message: "No Patient" });
+  }
+
+  // check id
+  if (!case_id) {
+    return res.status(500).json({ message: "No Case ID" });
+  }
+
+  // check if patient is valid
+  if (!mongoose.Types.ObjectId.isValid(patient)) {
+    return res.status(500).json({ message: "Patient ID not valid" });
+  }
+
+  // check if _id is valid
+  if (!mongoose.Types.ObjectId.isValid(case_id)) {
+    return res.status(500).json({ message: "Case ID not valid" });
+  }
+
   try {
-    const caseFiles = await CaseFile.find({ patient, treatment_date })
+    const caseFile = await CaseFile.findById(case_id)
       .populate("patient")
       .populate("doctor");
-    res.json({ caseFiles });
+
+      if (!caseFile) {
+        return res.status(500).json({ message: "Case file not found" });
+      }
+
+      if (caseFile.patient != patient) {
+        return res.status(500).json({ message: "Invalid Patient Verification" });
+      }
+
+    res.json({ caseFile });
   } catch (error) {
-    console.log("Error in get_case_file_by_patient controller:", error.message);
+    console.log("Error in get_case_file_by_id controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
   }
 };
@@ -87,6 +116,7 @@ export const get_all_patients = async (req, res) => {
       .populate("current_doctor")
       .populate("last_doctor")
       .populate("assessment_info.equipment");
+
     res.json({ patients });
   } catch (error) {
     console.log("Error in get_all_patients controller:", error.message);
@@ -225,15 +255,28 @@ export const add_update_case_file = async (req, res) => {
         note,
         remarks,
         case_type,
-        treatment_date,
-        start_time,
-        end_time,
+        treatment_date: getTimezoneOffset(treatment_date),
+        start_time: getTimezoneOffset(start_time),
+        end_time: getTimezoneOffset(end_time),
         treatment_decision,
         refered_decision,
         other_decision,
       });
 
+      // save casefile id to patient
+      const patient_new = await Patient.findByIdAndUpdate(
+        patient,
+        {
+          current_case_id: caseFile._id,
+        },
+        { new: true }
+      );
+
       res.json({ message: "Case File Opened", caseFile });
+
+      //? emit
+      io.emit("CaseFile", caseFile);
+      io.emit("Patient", patient_new);
     }
 
     // else UPDATE
@@ -255,9 +298,9 @@ export const add_update_case_file = async (req, res) => {
           bp_reading,
           note,
           remarks,
-          case_type,
-          start_time,
-          end_time,
+          // case_type,
+          start_time: getTimezoneOffset(start_time),
+          end_time: getTimezoneOffset(end_time),
           treatment_decision,
           refered_decision,
           other_decision,
@@ -265,8 +308,20 @@ export const add_update_case_file = async (req, res) => {
         { new: true }
       );
 
-      io.emit("CaseFileID", id);
+      // save casefile id to patient
+      const patient_new = await Patient.findByIdAndUpdate(
+        patient,
+        {
+          current_case_id: end_time ? null : caseFile._id,
+        },
+        { new: true }
+      );
+
       res.json({ message: "Case File updated", caseFile });
+
+      //? emit
+      io.emit("CaseFile", caseFile);
+      io.emit("Patient", patient_new);
     }
 
     //? emit
@@ -370,6 +425,7 @@ export const add_update_patient = async (req, res) => {
     user_status,
     f_name,
     m_name,
+    l_name,
     user_image,
     phone_1,
     phone_2,
@@ -384,22 +440,22 @@ export const add_update_patient = async (req, res) => {
     hykau_others,
     hmo,
     hmo_id,
-    sponsor,
+    sponsors,
     refferal_code,
   } = req.body;
 
   // verify fields
-  if (!f_name || !gender) {
+  if (!f_name || !gender || !patient_id) {
     return res.status(500).json({ message: "Enter all required fields" });
   }
 
-  const patient_id_exists = await Patient.findOne({patient_id});
+  const patient_id_exists = await Patient.findOne({ patient_id });
 
   try {
     // if id is undefined CREATE
     if (!id) {
       if (patient_id_exists) {
-        return res.status(500).json({message: "Patient ID Exists"});
+        return res.status(500).json({ message: "Patient ID Exists" });
       }
 
       const patient = await Patient.create({
@@ -408,6 +464,7 @@ export const add_update_patient = async (req, res) => {
         user_status,
         f_name,
         m_name,
+        l_name,
         user_image,
         phone_1,
         phone_2,
@@ -422,7 +479,7 @@ export const add_update_patient = async (req, res) => {
         hykau_others,
         hmo,
         hmo_id,
-        sponsor,
+        sponsors,
         refferal_code,
       });
 
@@ -446,7 +503,7 @@ export const add_update_patient = async (req, res) => {
       }
 
       if (patient_id_exists && patient_id != patient_id_exists.patient_id) {
-        return res.status(500).json({message: "Patient ID Exists"});
+        return res.status(500).json({ message: "Patient ID Exists" });
       }
 
       const patient = await Patient.findByIdAndUpdate(
@@ -457,6 +514,7 @@ export const add_update_patient = async (req, res) => {
           user_status,
           f_name,
           m_name,
+          l_name,
           user_image,
           phone_1,
           phone_2,
@@ -471,7 +529,7 @@ export const add_update_patient = async (req, res) => {
           hykau_others,
           hmo,
           hmo_id,
-          sponsor,
+          sponsors,
           refferal_code,
         },
         { new: true }
@@ -582,9 +640,7 @@ export const assign_current_doctor = async (req, res) => {
 // update treatment_info
 export const update_treatment_info = async (req, res) => {
   try {
-    const { patient, treatment_info } = req.body;
-
-    // treatment_info = last_bp, current_treatment_date, treatment_elapse
+    const { patient, treatment_info, update } = req.body;
 
     // check if _id is valid
     if (!mongoose.Types.ObjectId.isValid(patient)) {
@@ -602,7 +658,7 @@ export const update_treatment_info = async (req, res) => {
       return res.status(500).json({ message: "Invalid Entry" });
     }
 
-    if (treatment_info.current_treatment_date) {
+    if (update) {
       treatment_info.last_bp_p = patientExists.treatment_info.last_bp;
       treatment_info.last_treatment_date_p =
         patientExists.treatment_info.last_treatment_date;
@@ -610,9 +666,28 @@ export const update_treatment_info = async (req, res) => {
         patientExists.treatment_info.current_treatment_date;
     }
 
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      treatment_info,
-    });
+    treatment_info.current_treatment_date = getTimezoneOffset(
+      treatment_info.current_treatment_date
+    );
+    treatment_info.last_treatment_date = getTimezoneOffset(
+      treatment_info.last_treatment_date
+    );
+    treatment_info.last_treatment_date_p = getTimezoneOffset(
+      treatment_info.last_treatment_date_p
+    );
+    treatment_info.assessment_date = getTimezoneOffset(
+      treatment_info.assessment_date
+    );
+
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        treatment_info,
+      },
+      {
+        new: true,
+      }
+    );
 
     res.json({ message: "Treatment Info Updated Successfully", patient_data });
 
@@ -636,6 +711,7 @@ export const update_assessment_info = async (req, res) => {
     diagnosis,
     case_type,
     treatment_type,
+    assessment_date,
     equipment,
   } = req.body;
 
@@ -666,16 +742,22 @@ export const update_assessment_info = async (req, res) => {
     diagnosis,
     case_type,
     treatment_type,
-    equipment,
+    assessment_date: getTimezoneOffset(assessment_date),
+    // equipment,
   };
 
+  console.log(assessment_info.assessment_date);
+
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      $push: { assessment_info },
-    });
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        $push: { assessment_info },
+      },
+      { new: true }
+    );
 
     res.json({ message: "Assessment Info Updated Successfully", patient_data });
-
     //? emit
     io.emit("Patient", patient_data);
   } catch (error) {
@@ -725,9 +807,13 @@ export const update_clinic_info = async (req, res) => {
   };
 
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      clinic_info,
-    });
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        clinic_info,
+      },
+      { new: true }
+    );
 
     res.json({ message: "Clinic Info Updated Successfully", patient_data });
 
@@ -792,9 +878,6 @@ export const update_clinic_variables = async (req, res) => {
 // update clinic history
 export const update_clinic_history = async (req, res) => {
   const { patient, clinic_history } = req.body;
-
-  // clinic_history = hist_type, amount, amount_b4_discount, date, session_paid, cost_p_session, old_float, new_float, session_frequency
-
   if (!patient) {
     return res.status(500).json({ message: "Patient not found" });
   }
@@ -810,10 +893,23 @@ export const update_clinic_history = async (req, res) => {
     return res.status(500).json({ message: "Patient does not exist" });
   }
 
+  clinic_history.date = getTimezoneOffset(clinic_history.date);
+
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      $push: { clinic_history },
-    });
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        $push: { clinic_history },
+        $inc: {
+          total_amount_paid:
+            clinic_history.hist_type != "Session setup" &&
+            clinic_history.hist_type != "Session added"
+              ? clinic_history.amount
+              : 0,
+        },
+      },
+      { new: true }
+    );
 
     res.json({ message: "Clinic History Updated Successfully", patient_data });
 
@@ -1004,6 +1100,7 @@ export const delete_patient = async (req, res) => {
 
   try {
     await Patient.findByIdAndDelete(id);
+    res.status(200).json({ message: "Patient deleted Sucessfully", id });
 
     //? emit
     io.emit("PatientD", id);
@@ -1024,23 +1121,23 @@ export const send_patient_to_clinic = async (req, res) => {
 
 // generate patient_id
 export const generate_patient_id = async (req, res) => {
-   var all_ids = [];
+  var all_ids = [];
 
   try {
     const patients = await Patient.find({});
 
     for (let index = 0; index < patients.length; index++) {
       const element = patients[index];
-      
-      var id = parseInt(element.patient_id.split('-')[1]);
+
+      var id = parseInt(element.patient_id.split("-")[1]);
       all_ids.push(id);
     }
   } catch (error) {
-    console.log('Error in generate_patient_id', error);
-    return res.status(500).json({message: 'Failed to generate ID'});
+    console.log("Error in generate_patient_id", error);
+    return res.status(500).json({ message: "Failed to generate ID" });
   }
-  console.log(all_ids);
+
   var last_id = Math.max(...all_ids);
   last_id++;
-  return res.json({message: "ID Generated", patient_id: last_id});
-}
+  return res.json({ message: "ID Generated", patient_id: last_id });
+};

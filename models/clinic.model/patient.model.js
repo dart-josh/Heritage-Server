@@ -1,17 +1,17 @@
 import mongoose from "mongoose";
 
 const treatmentInfoSchema = new mongoose.Schema({
-  last_bp: String,
-  last_bp_p: String,
-  last_treatment_date: Date,
-  last_treatment_date_p: Date,
-  current_treatment_date: Date,
-  treatment_elapse: Boolean,
-  assessment_completed: Boolean,
-  ongoing_treatment: Boolean,
-  assessment_date: Date,
-  assessment_paid: Boolean,
-  skip_assessment: Boolean,
+  last_bp: { type: String },
+  last_bp_p: { type: String },
+  last_treatment_date: { type: Date, default: null },
+  last_treatment_date_p: { type: Date, default: null },
+  current_treatment_date: { type: Date, default: null },
+  treatment_elapse: { type: Boolean },
+  assessment_completed: { type: Boolean },
+  ongoing_treatment: { type: Boolean },
+  assessment_date: { type: Date, default: null },
+  assessment_paid: { type: Boolean },
+  skip_assessment: { type: Boolean },
 });
 
 const clinicInfoSchema = new mongoose.Schema({
@@ -27,8 +27,8 @@ const clinicInfoSchema = new mongoose.Schema({
 const cliniVariablesSchema = new mongoose.Schema({
   can_treat: { type: Boolean, default: false },
   treatment_duration: { type: String },
-  start_time: {Date},
-  end_time: {Date},
+  start_time: { Date },
+  end_time: { Date },
 });
 
 const patientSchema = new mongoose.Schema({
@@ -53,28 +53,25 @@ const patientSchema = new mongoose.Schema({
   hmo: { type: String },
   hmo_id: { type: String },
   baseline_done: { type: Boolean, default: false },
-  sponsor: [
+  sponsors: [
     {
       name: { type: String, required: true },
       phone: { type: String },
       address: { type: String },
-      role: { type: String, required: true },
+      role: { type: String },
     },
   ],
   refferal_code: { type: String },
   current_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
   last_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
   treatment_info: {
-    type: Map,
-    of: { type: treatmentInfoSchema },
+    type: treatmentInfoSchema,
   },
   clinic_info: {
-    type: Map,
-    of: { type: clinicInfoSchema },
+    type: clinicInfoSchema,
   },
   clinic_variables: {
-    type: Map,
-    of: { type: cliniVariablesSchema },
+    type: cliniVariablesSchema,
   },
   assessment_info: [
     {
@@ -94,7 +91,7 @@ const patientSchema = new mongoose.Schema({
       hist_type: {
         type: String,
         required: true,
-        enum: ["assessment payment", "session payment", "session setup"],
+        enum: ["Assessment payment", "Session payment", "Session setup", "Session added"],
       },
       amount: { type: Number },
       amount_b4_discount: { type: Number },
@@ -123,6 +120,7 @@ const patientSchema = new mongoose.Schema({
     },
   ],
   total_amount_paid: { type: Number },
+  current_case_id: {type: mongoose.Schema.Types.ObjectId, ref: "CaseFile", default: null},
 });
 
 const Patient = mongoose.model("Patient", patientSchema);

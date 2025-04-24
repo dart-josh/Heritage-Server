@@ -19,8 +19,8 @@ const caseFileSchema = new mongoose.Schema(
     case_type: { type: String, required: true },
 
     treatment_date: { type: Date, required: true },
-    start_time: { type: Date },
-    end_time: { type: Date },
+    start_time: { type: Date, default: null },
+    end_time: { type: Date, default: null },
     treatment_decision: { type: String },
     refered_decision: { type: String },
     other_decision: { type: String },

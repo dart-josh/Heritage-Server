@@ -16,7 +16,7 @@ import {
   get_all_case_files,
   get_all_equipments,
   get_all_patients,
-  get_case_file_by_date,
+  get_case_file_by_id,
   get_case_file_by_patient,
   get_patient_by_id,
   update_assessment_info,
@@ -30,7 +30,7 @@ const router = express.Router();
 router.get("/get_all_accessory_requests", get_all_accessory_requests);
 router.get("/get_all_case_files", get_all_case_files);
 router.post("/get_case_file_by_patient", get_case_file_by_patient);
-// router.post('/get_case_file_by_id', get_case_file_by_id)
+router.post('/get_case_file_by_id', get_case_file_by_id);
 router.get("/get_all_equipments", get_all_equipments);
 router.get("/get_all_patients", get_all_patients);
 router.post("/get_patient_by_id", get_patient_by_id);

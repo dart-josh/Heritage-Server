@@ -15,3 +15,18 @@ export const generate_accessory_id = () => {
 export const generate_order_id = () => {
   return "ORD" + generate_nano_id();
 }
+
+export const getTimezoneOffset = (date) => {
+  if (!date) {
+    return null;
+  }
+  
+  const newDate = new Date(date);
+
+  // convert date to local timezone
+  newDate.setMinutes(
+    newDate.getMinutes() - newDate.getTimezoneOffset(),
+  );
+
+  return newDate;
+}
