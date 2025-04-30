@@ -15,22 +15,20 @@ const doctorSchema = new mongoose.Schema({
   my_patients: [
     {
       patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
-      session_count: { type: Number, default: 0 },
+      session_count: { type: Number, default: 1 },
     },
   ],
 
   ong_patients: [
     {
-      patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
-      treatment_type: { type: String, required: true },
-      treatment_duration: { type: String, required: true },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
     },
   ],
   pen_patients: [
     {
-      patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
-      treatment_type: { type: String, required: true },
-      treatment_duration: { type: String, required: true },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
     },
   ],
 });

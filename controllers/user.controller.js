@@ -19,13 +19,13 @@ export const get_all_customers = async (req, res) => {
 };
 
 // get all doctors
-export const get_all_doctors = async (req, res) => {
+export const get_doctors = async (req, res) => {
   try {
     const doctors = await Doctor.find({})
       .populate("user")
       .populate("my_patients.patient")
-      .populate("ong_patients.patient")
-      .populate("pen_patients.patient");
+      .populate("ong_patients")
+      .populate("pen_patients");
     res.json({ doctors });
   } catch (error) {
     console.log("Error in get_all_doctors controller:", error.message);
@@ -37,11 +37,11 @@ export const get_all_doctors = async (req, res) => {
 export const get_doctor_by_id = async (req, res) => {
   const { id } = req.params;
   try {
-    const doctor = await Doctor.findOne({user: id})
+    const doctor = await Doctor.findOne({ user: id })
       .populate("user")
       .populate("my_patients.patient")
-      .populate("ong_patients.patient")
-      .populate("pen_patients.patient");
+      .populate("ong_patients")
+      .populate("pen_patients");
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
@@ -164,7 +164,17 @@ export const add_update_doctor = async (req, res) => {
         title,
       });
 
-      res.json({ message: "Doctor Created Successfully", doctor });
+      const populatedDoctor = await doctor.populate([
+        { path: "user" },
+        { path: "my_patients.patient" },
+        { path: "ong_patients" },
+        { path: "pen_patients" },
+      ]);
+
+      res.json({ message: "Doctor Created Successfully", populatedDoctor });
+
+      //? emit
+      io.emit("Doctor", populatedDoctor);
     }
 
     // else UPDATE
@@ -189,11 +199,18 @@ export const add_update_doctor = async (req, res) => {
         { new: true }
       );
 
-      res.json({ message: "Doctor Status Successfully", doctor });
-    }
+      const populatedDoctor = await doctor.populate([
+        { path: "user" },
+        { path: "my_patients.patient" },
+        { path: "ong_patients" },
+        { path: "pen_patients" },
+      ]);
 
-    //? emit
-    io.emit("Doctor", user);
+      res.json({ message: "Doctor Updated", doctor: populatedDoctor });
+
+      //? emit
+      io.emit("Doctor", populatedDoctor);
+    }
   } catch (error) {
     console.log("Error in add_update_doctor controller: ", error.message);
     res
@@ -204,40 +221,56 @@ export const add_update_doctor = async (req, res) => {
 
 // update pen_patients
 export const update_pen_patients = async (req, res) => {
-  const { id, patient } = req.body;
+  const { doctor, patient } = req.body;
+
   // verify fields
-  if (!id) {
+  if (!doctor) {
     return res.status(500).json({ message: "Select a doctor" });
   }
 
   try {
     // check if _id is valid
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(doctor)) {
       return res.status(500).json({ message: "ID not valid" });
     }
 
     // Check if user exist
-    const userExists = await Doctor.findById(id);
+    const userExists = await Doctor.findById(doctor);
     if (!userExists) {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
     // check if patient.patient exist in pen patients array
     const patientExists = userExists.pen_patients.some(
-      (p) => p.patient.toString() === patient.patient.toString()
+      (p) => p.toString() === patient
     );
     if (patientExists) {
-      return res.status(500).json({ message: "Patient already exist" });
+      return res.json({ message: "Patient already exist", doctor: 'doc' });
     }
 
-    const doctor = await Doctor.findByIdAndUpdate(
-      id,
+    const _doctor = await Doctor.findByIdAndUpdate(
+      doctor,
       {
         $push: { pen_patients: patient },
       },
       { new: true }
     );
 
-    res.json({ message: "Pending patients updated", doctor });
+    const populatedDoctor = await _doctor.populate([
+      { path: "user" },
+      { path: "my_patients.patient" },
+      { path: "ong_patients" },
+      { path: "pen_patients" },
+    ]);
+
+    //? emit
+    io.emit("Doctor", populatedDoctor);
+
+    res.json({
+      message: patientExists
+        ? "Treatment duration Updated"
+        : "Pending patients updated",
+      doctor: populatedDoctor,
+    });
   } catch (error) {
     console.log("Error in update_pen_patients controller: ", error.message);
     res
@@ -248,40 +281,50 @@ export const update_pen_patients = async (req, res) => {
 
 // update ong_patients
 export const update_ong_patients = async (req, res) => {
-  const { id, patient } = req.body;
+  const { doctor, patient } = req.body;
   // verify fields
-  if (!id) {
+  if (!doctor) {
     return res.status(500).json({ message: "Select a doctor" });
   }
 
   try {
     // check if _id is valid
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(doctor)) {
       return res.status(500).json({ message: "ID not valid" });
     }
 
     // Check if user exist
-    const userExists = await Doctor.findById(id);
+    const userExists = await Doctor.findById(doctor);
     if (!userExists) {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
     // check if patient.patient exist in pen patients array
     const patientExists = userExists.ong_patients.some(
-      (p) => p.patient.toString() === patient.patient.toString()
+      (p) => p === patient
     );
     if (patientExists) {
       return res.status(500).json({ message: "Patient already exist" });
     }
 
-    const doctor = await Doctor.findByIdAndUpdate(
-      id,
+    const _doctor = await Doctor.findByIdAndUpdate(
+      doctor,
       {
         $push: { ong_patients: patient },
       },
       { new: true }
     );
 
-    res.json({ message: "Ongoing patients updated", doctor });
+    const populatedDoctor = await _doctor.populate([
+      { path: "user" },
+      { path: "my_patients.patient" },
+      { path: "ong_patients" },
+      { path: "pen_patients" },
+    ]);
+
+    //? emit
+    io.emit("Doctor", populatedDoctor);
+
+    res.json({ message: "Ongoing patients updated", doctor: populatedDoctor });
   } catch (error) {
     console.log("Error in update_ong_patients controller: ", error.message);
     res
@@ -292,20 +335,20 @@ export const update_ong_patients = async (req, res) => {
 
 // update my_patients
 export const update_my_patients = async (req, res) => {
-  const { id, patient } = req.body;
+  const { doctor, patient } = req.body;
   // verify fields
-  if (!id) {
+  if (!doctor) {
     return res.status(500).json({ message: "Select a doctor" });
   }
 
   try {
     // check if _id is valid
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(doctor)) {
       return res.status(500).json({ message: "ID not valid" });
     }
 
     // Check if doctor exist
-    const doctorExists = await Doctor.findById(id);
+    const doctorExists = await Doctor.findById(doctor);
     if (!doctorExists) {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
@@ -317,25 +360,44 @@ export const update_my_patients = async (req, res) => {
 
     if (patientExists) {
       // increase patient session count
-      const doctor = await Doctor.findByIdAndUpdate(
-        id,
+      const _doctor = await Doctor.findByIdAndUpdate(
+        doctor,
         {
           $inc: { "my_patients.$[elem].session_count": 1 },
         },
         { new: true, arrayFilters: [{ "elem.patient": patient.patient }] }
       );
-      res.json({ message: "My patients updated", doctor });
+
+      const populatedDoctor = await _doctor.populate([
+        { path: "user" },
+        { path: "my_patients.patient" },
+        { path: "ong_patients" },
+        { path: "pen_patients" },
+      ]);
+
+      //? emit
+      io.emit("Doctor", populatedDoctor);
+      res.json({ message: "My patients updated", doctor: populatedDoctor });
     } else {
-      const doctor = await Doctor.findByIdAndUpdate(
-        id,
+      const _doctor = await Doctor.findByIdAndUpdate(
+        doctor,
         {
           $push: { my_patients: patient },
         },
         { new: true }
       );
-      res.json({ message: "My patients updated", doctor });
-    }
 
+      const populatedDoctor = await _doctor.populate([
+        { path: "user" },
+        { path: "my_patients.patient" },
+        { path: "ong_patients" },
+        { path: "pen_patients" },
+      ]);
+
+      //? emit
+      io.emit("Doctor", populatedDoctor);
+      res.json({ message: "My patients updated", doctor: populatedDoctor });
+    }
   } catch (error) {
     console.log("Error in update_my_patients controller: ", error.message);
     res
@@ -346,10 +408,10 @@ export const update_my_patients = async (req, res) => {
 
 // remove patient from pen_patients
 export const remove_pen_patients = async (req, res) => {
-  const { id, patient } = req.body;
+  const { doctor, patient } = req.body;
 
   // verify fields
-  if (!id) {
+  if (!doctor) {
     return res.status(500).json({ message: "Select a doctor" });
   }
   if (!patient) {
@@ -357,7 +419,7 @@ export const remove_pen_patients = async (req, res) => {
   }
 
   // check if id is valid
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(doctor)) {
     return res.status(500).json({ message: "ID not valid" });
   }
   // check if patient is valid
@@ -367,21 +429,31 @@ export const remove_pen_patients = async (req, res) => {
 
   try {
     // Check if user exist
-    const userExists = await Doctor.findById(id);
+    const userExists = await Doctor.findById(doctor);
     if (!userExists) {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
 
     // remove patient from pen_patients
-    const doctor = await Doctor.findByIdAndUpdate(
-      id,
+    const _doctor = await Doctor.findByIdAndUpdate(
+      doctor,
       {
-        $pull: { pen_patients: { patient } },
+        $pull: { pen_patients:  patient },
       },
       { new: true }
     );
 
-    res.json({ message: "Pending patients updated", doctor });
+    const populatedDoctor = await _doctor.populate([
+      { path: "user" },
+      { path: "my_patients.patient" },
+      { path: "ong_patients" },
+      { path: "pen_patients" },
+    ]);
+
+    //? emit
+    io.emit("Doctor", populatedDoctor);
+
+    res.json({ message: "Pending patients updated", doctor: populatedDoctor });
   } catch (error) {
     console.log("Error in remove_pen_patients: ", error.message);
     res
@@ -392,10 +464,10 @@ export const remove_pen_patients = async (req, res) => {
 
 // remove patient from ong_patients
 export const remove_ong_patients = async (req, res) => {
-  const { id, patient } = req.body;
+  const { doctor, patient } = req.body;
 
   // verify fields
-  if (!id) {
+  if (!doctor) {
     return res.status(500).json({ message: "Select a doctor" });
   }
   if (!patient) {
@@ -403,7 +475,7 @@ export const remove_ong_patients = async (req, res) => {
   }
 
   // check if id is valid
-  if (!mongoose.Types.ObjectId.isValid(id)) {
+  if (!mongoose.Types.ObjectId.isValid(doctor)) {
     return res.status(500).json({ message: "ID not valid" });
   }
   // check if patient is valid
@@ -413,21 +485,31 @@ export const remove_ong_patients = async (req, res) => {
 
   try {
     // Check if user exist
-    const userExists = await Doctor.findById(id);
+    const userExists = await Doctor.findById(doctor);
     if (!userExists) {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
 
     // remove patient from pen_patients
-    const doctor = await Doctor.findByIdAndUpdate(
-      id,
+    const _doctor = await Doctor.findByIdAndUpdate(
+      doctor,
       {
-        $pull: { ong_patients: { patient } },
+        $pull: { ong_patients:  patient  },
       },
       { new: true }
     );
 
-    res.json({ message: "Ongoing patients updated", doctor });
+    const populatedDoctor = await _doctor.populate([
+      { path: "user" },
+      { path: "my_patients.patient" },
+      { path: "ong_patients" },
+      { path: "pen_patients" },
+    ]);
+
+    //? emit
+    io.emit("Doctor", populatedDoctor);
+
+    res.json({ message: "Ongoing patients updated", doctor: populatedDoctor });
   } catch (error) {
     console.log("Error in remove_ong_patients: ", error.message);
     res
@@ -454,16 +536,9 @@ export const add_update_user = async (req, res) => {
   } = req.body;
 
   // verify fields
-  if ((!user_id, !f_name, !l_name, !user_role, !section, !app_role)) {
+  if (!user_id || !f_name || !l_name || !user_role || !section || !app_role) {
     return res.status(500).json({ message: "Enter all required fields" });
   }
-
-  section = [
-    "General Staff",
-    "Heritage Physiotherapy clinic",
-    "Heritage Fitness",
-    "Delightsome Juice & Smoothies",
-  ];
 
   // verify app role
   if (
@@ -512,10 +587,10 @@ export const add_update_user = async (req, res) => {
         can_sign_in,
       });
 
-      user.password = undefined;
-      user.pin = undefined;
-
       res.json({ message: "User Created Successfully", user });
+
+      //? emit
+      io.emit("User", user);
     }
 
     // else UPDATE
@@ -550,13 +625,12 @@ export const add_update_user = async (req, res) => {
       );
 
       user.password = undefined;
-      user.pin = undefined;
 
       res.json({ message: "User Updated Successfully", user });
-    }
 
-    //? emit
-    io.emit("User", user_id);
+      //? emit
+      io.emit("User", user);
+    }
   } catch (error) {
     console.log("Error in add_update_user controller: ", error.message);
     res
@@ -624,9 +698,9 @@ export const delete_doctor = async (req, res) => {
     await Doctor.findByIdAndDelete(id);
 
     //? emit
-    io.emit("DoctorD");
+    io.emit("DoctorD", id);
 
-    res.json({ message: "Doctor deleted Sucessfully" });
+    res.json({ message: "Doctor deleted Sucessfully", id });
   } catch (error) {
     console.log("Error in delete_doctor: ", error.message);
     res
@@ -657,10 +731,10 @@ export const delete_user = async (req, res) => {
   try {
     await User.findByIdAndDelete(id);
 
-    //? emit
-    io.emit("UserD");
+    res.json({ message: "User deleted Sucessfully", id });
 
-    res.json({ message: "User deleted Sucessfully" });
+    //? emit
+    io.emit("UserD", id);
   } catch (error) {
     console.log("Error in delete_user: ", error.message);
     res
@@ -670,3 +744,25 @@ export const delete_user = async (req, res) => {
 };
 
 //? UTILS
+// generate patient_id
+export const generate_user_id = async (req, res) => {
+  var all_ids = [];
+
+  try {
+    const users = await User.find({});
+
+    for (let index = 0; index < users.length; index++) {
+      const element = users[index];
+
+      var id = parseInt(element.user_id.split("-")[1]);
+      all_ids.push(id);
+    }
+  } catch (error) {
+    console.log("Error in generate_user_id", error);
+    return res.status(500).json({ message: "Failed to generate ID" });
+  }
+
+  var last_id = Math.max(...all_ids);
+  last_id++;
+  return res.json({ message: "ID Generated", user_id: last_id });
+};

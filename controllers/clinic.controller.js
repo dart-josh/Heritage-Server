@@ -56,6 +56,20 @@ export const get_case_file_by_patient = async (req, res) => {
 };
 
 // get case file by date
+export const get_case_file_by_date = async (req, res) => {
+  const { patient, treatment_date } = req.body;
+  try {
+    const caseFiles = await CaseFile.find({ patient, treatment_date })
+      .populate("patient")
+      .populate("doctor");
+    res.json({ caseFiles });
+  } catch (error) {
+    console.log("Error in get_case_file_by_date controller:", error.message);
+    return res.status(500).send({ message: "Internal Server error" });
+  }
+};
+
+// get case file by id
 export const get_case_file_by_id = async (req, res) => {
   const { patient, case_id } = req.body;
   // check patient
@@ -83,13 +97,13 @@ export const get_case_file_by_id = async (req, res) => {
       .populate("patient")
       .populate("doctor");
 
-      if (!caseFile) {
-        return res.status(500).json({ message: "Case file not found" });
-      }
+    if (!caseFile) {
+      return res.status(500).json({ message: "Case file not found" });
+    }
 
-      if (caseFile.patient != patient) {
-        return res.status(500).json({ message: "Invalid Patient Verification" });
-      }
+    if (caseFile.patient._id.toString() != patient) {
+      return res.status(500).json({ message: "Invalid Patient Verification" });
+    }
 
     res.json({ caseFile });
   } catch (error) {
@@ -109,13 +123,19 @@ export const get_all_equipments = async (req, res) => {
   }
 };
 
-// get patients
+//? get patients
 export const get_all_patients = async (req, res) => {
   try {
     const patients = await Patient.find({})
       .populate("current_doctor")
       .populate("last_doctor")
+      // .populate("current_doctor.user")
       .populate("assessment_info.equipment");
+
+    // const patients = await patients_x. populate([
+    //   { path: "current_doctor.user" },
+    //   { path: "last_doctor.user" },
+    // ]);
 
     res.json({ patients });
   } catch (error) {
@@ -257,7 +277,7 @@ export const add_update_case_file = async (req, res) => {
         case_type,
         treatment_date: getTimezoneOffset(treatment_date),
         start_time: getTimezoneOffset(start_time),
-        end_time: getTimezoneOffset(end_time),
+        // end_time: getTimezoneOffset(end_time),
         treatment_decision,
         refered_decision,
         other_decision,
@@ -272,11 +292,22 @@ export const add_update_case_file = async (req, res) => {
         { new: true }
       );
 
-      res.json({ message: "Case File Opened", caseFile });
+      const populated_caseFile = await caseFile.populate([
+        { path: "patient" },
+        { path: "doctor" },
+      ]);
+
+      const populated_patient = await patient_new.populate([
+        { path: "current_doctor" },
+        { path: "last_doctor" },
+        { path: "assessment_info.equipment" },
+      ]);
+
+      res.json({ message: "Case File Opened", caseFile: populated_caseFile });
 
       //? emit
-      io.emit("CaseFile", caseFile);
-      io.emit("Patient", patient_new);
+      io.emit("CaseFile", populated_caseFile);
+      io.emit("Patient", populated_patient);
     }
 
     // else UPDATE
@@ -299,7 +330,7 @@ export const add_update_case_file = async (req, res) => {
           note,
           remarks,
           // case_type,
-          start_time: getTimezoneOffset(start_time),
+          // start_time: getTimezoneOffset(start_time),
           end_time: getTimezoneOffset(end_time),
           treatment_decision,
           refered_decision,
@@ -309,7 +340,7 @@ export const add_update_case_file = async (req, res) => {
       );
 
       // save casefile id to patient
-      const patient_new = await Patient.findByIdAndUpdate(
+      const patient_data = await Patient.findByIdAndUpdate(
         patient,
         {
           current_case_id: end_time ? null : caseFile._id,
@@ -317,16 +348,23 @@ export const add_update_case_file = async (req, res) => {
         { new: true }
       );
 
-      res.json({ message: "Case File updated", caseFile });
+      const populated_caseFile = await caseFile.populate([
+        { path: "patient" },
+        { path: "doctor" },
+      ]);
+
+      const populated_patient = await patient_data.populate([
+        { path: "current_doctor" },
+        { path: "last_doctor" },
+        { path: "assessment_info.equipment" },
+      ]);
+
+      res.json({ message: "Case File updated", caseFile: populated_caseFile });
 
       //? emit
-      io.emit("CaseFile", caseFile);
-      io.emit("Patient", patient_new);
+      io.emit("CaseFile", populated_caseFile);
+      io.emit("Patient", populated_patient);
     }
-
-    //? emit
-    io.emit("CaseFile");
-    io.emit("CaseFilePatient", patient);
   } catch (error) {
     console.log("Error in add_update_case_file: ", error.message);
     res
@@ -483,10 +521,19 @@ export const add_update_patient = async (req, res) => {
         refferal_code,
       });
 
-      res.json({ message: "Patient Created Successfully", patient });
+      const populated_patient = await patient.populate([
+        { path: "current_doctor" },
+        { path: "last_doctor" },
+        { path: "assessment_info.equipment" },
+      ]);
+
+      res.json({
+        message: "Patient Created Successfully",
+        patient: populated_patient,
+      });
 
       //? emit
-      io.emit("Patient", patient);
+      io.emit("Patient", populated_patient);
     }
 
     // else UPDATE
@@ -535,10 +582,19 @@ export const add_update_patient = async (req, res) => {
         { new: true }
       );
 
-      //? emit
-      io.emit("Patient", patient);
+      const populated_patient = await patient.populate([
+        { path: "current_doctor" },
+        { path: "last_doctor" },
+        { path: "assessment_info.equipment" },
+      ]);
+      
+      res.json({
+        message: "Patient Updated Successfully",
+        patient: populated_patient,
+      });
 
-      res.json({ message: "Patient Updated Successfully", patient });
+      //? emit
+      io.emit("Patient", populated_patient);
     }
   } catch (error) {
     console.log("Error in add_update_patient: ", error.message);
@@ -568,10 +624,19 @@ export const complete_base_line = async (req, res) => {
       baseline_done: true,
     });
 
-    res.json({ message: "Baseline Completed Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Baseline Completed Successfully",
+      patient_data: populated_patient,
+    });
 
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in complete_base_line: ", error.message);
     res
@@ -582,7 +647,7 @@ export const complete_base_line = async (req, res) => {
 
 // assign current doctor
 export const assign_current_doctor = async (req, res) => {
-  const { patient, doctor } = req.body;
+  const { patient, doctor, sett } = req.body;
 
   // check patient
   if (!patient) {
@@ -617,18 +682,33 @@ export const assign_current_doctor = async (req, res) => {
   }
 
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      current_doctor: doctor,
-      last_doctor: patientExists.current_doctor,
-    });
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        current_doctor: sett ? doctor : null,
+        last_doctor: sett
+          ? patientExists.last_doctor
+          : patientExists.current_doctor,
+      },
+      { new: true }
+    );
     if (!patient_data) {
       return res.status(500).json({ message: "Patient not found" });
     }
 
-    res.json({ message: "Current Doctor Assigned Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Current Doctor Assigned Successfully",
+      patient_data: populated_patient,
+    });
 
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in assign_current_doctor: ", error.message);
     res
@@ -659,22 +739,19 @@ export const update_treatment_info = async (req, res) => {
     }
 
     if (update) {
-      treatment_info.last_bp_p = patientExists.treatment_info.last_bp;
+      treatment_info.last_bp_p = patientExists.treatment_info?.last_bp ?? "";
       treatment_info.last_treatment_date_p =
-        patientExists.treatment_info.last_treatment_date;
-      treatment_info.last_treatment_date =
-        patientExists.treatment_info.current_treatment_date;
+        patientExists.treatment_info?.last_treatment_date;
     }
 
-    treatment_info.current_treatment_date = getTimezoneOffset(
-      treatment_info.current_treatment_date
-    );
     treatment_info.last_treatment_date = getTimezoneOffset(
       treatment_info.last_treatment_date
     );
-    treatment_info.last_treatment_date_p = getTimezoneOffset(
-      treatment_info.last_treatment_date_p
-    );
+
+    // treatment_info.last_treatment_date_p = getTimezoneOffset(
+    //   treatment_info.last_treatment_date_p
+    // );
+
     treatment_info.assessment_date = getTimezoneOffset(
       treatment_info.assessment_date
     );
@@ -689,10 +766,19 @@ export const update_treatment_info = async (req, res) => {
       }
     );
 
-    res.json({ message: "Treatment Info Updated Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Treatment Info Updated Successfully",
+      patient_data: populated_patient,
+    });
 
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_treatment_info: ", error.message);
     res
@@ -747,6 +833,7 @@ export const update_assessment_info = async (req, res) => {
   };
 
   console.log(assessment_info.assessment_date);
+  // check if assessment_date == today => Update => else add
 
   try {
     const patient_data = await Patient.findByIdAndUpdate(
@@ -757,9 +844,18 @@ export const update_assessment_info = async (req, res) => {
       { new: true }
     );
 
-    res.json({ message: "Assessment Info Updated Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Assessment Info Updated Successfully",
+      patient_data: populated_patient,
+    });
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_assessment_info: ", error.message);
     res
@@ -815,10 +911,19 @@ export const update_clinic_info = async (req, res) => {
       { new: true }
     );
 
-    res.json({ message: "Clinic Info Updated Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Clinic Info Updated Successfully",
+      patient_data: populated_patient,
+    });
 
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_clinic_info: ", error.message);
     res
@@ -829,8 +934,7 @@ export const update_clinic_info = async (req, res) => {
 
 // update clinic variables
 export const update_clinic_variables = async (req, res) => {
-  const { patient, can_treat, treatment_duration, start_time, end_time } =
-    req.body;
+  const { patient, treatment_duration, start_time, case_type } = req.body;
 
   if (!patient) {
     return res.status(500).json({ message: "Patient not found" });
@@ -849,24 +953,33 @@ export const update_clinic_variables = async (req, res) => {
 
   // clinic variables
   const clinic_variables = {
-    can_treat,
     treatment_duration,
-    start_time,
-    end_time,
+    start_time: getTimezoneOffset(start_time),
+    case_type,
   };
 
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      clinic_variables,
-    });
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        clinic_variables,
+      },
+      { new: true }
+    );
+
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
 
     res.json({
       message: "Clinic Variables Updated Successfully",
-      patient_data,
+      patient_data: populated_patient,
     });
 
     //? emit
-    io.emit("clinic_variables", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_clinic_variables: ", error.message);
     res
@@ -911,10 +1024,19 @@ export const update_clinic_history = async (req, res) => {
       { new: true }
     );
 
-    res.json({ message: "Clinic History Updated Successfully", patient_data });
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Clinic History Updated Successfully",
+      patient_data: populated_patient,
+    });
 
     //? emit
-    io.emit("Patient", patient_data);
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_clinic_history: ", error.message);
     res
@@ -1137,7 +1259,15 @@ export const generate_patient_id = async (req, res) => {
     return res.status(500).json({ message: "Failed to generate ID" });
   }
 
-  var last_id = Math.max(...all_ids);
-  last_id++;
-  return res.json({ message: "ID Generated", patient_id: last_id });
+  var new_id = 0;
+
+  if (all_ids.length > 0) {
+    new_id = Math.max(...all_ids);
+  } 
+
+  new_id++;
+  return res.json({
+    message: "ID Generated",
+    patient_id: new_id,
+  });
 };

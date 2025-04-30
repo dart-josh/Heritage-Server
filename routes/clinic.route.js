@@ -18,11 +18,13 @@ import {
   get_all_patients,
   get_case_file_by_id,
   get_case_file_by_patient,
+  get_case_file_by_date,
   get_patient_by_id,
   update_assessment_info,
   update_clinic_history,
   update_clinic_info,
   update_treatment_info,
+  update_clinic_variables,
 } from "../controllers/clinic.controller.js";
 
 const router = express.Router();
@@ -30,6 +32,7 @@ const router = express.Router();
 router.get("/get_all_accessory_requests", get_all_accessory_requests);
 router.get("/get_all_case_files", get_all_case_files);
 router.post("/get_case_file_by_patient", get_case_file_by_patient);
+router.post("/get_case_file_by_date", get_case_file_by_date);
 router.post('/get_case_file_by_id', get_case_file_by_id);
 router.get("/get_all_equipments", get_all_equipments);
 router.get("/get_all_patients", get_all_patients);
@@ -42,6 +45,7 @@ router.post("/add_update_patient", add_update_patient);
 router.post("/complete_base_line", complete_base_line);
 router.post("/assign_current_doctor", assign_current_doctor);
 router.post("/update_treatment_info", update_treatment_info);
+router.post("/update_clinic_variables", update_clinic_variables);
 router.post("/update_assessment_info", update_assessment_info);
 router.post("/update_clinic_info", update_clinic_info);
 router.post("/update_clinic_history", update_clinic_history);

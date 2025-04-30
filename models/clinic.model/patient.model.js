@@ -6,9 +6,7 @@ const treatmentInfoSchema = new mongoose.Schema({
   last_treatment_date: { type: Date, default: null },
   last_treatment_date_p: { type: Date, default: null },
   current_treatment_date: { type: Date, default: null },
-  treatment_elapse: { type: Boolean },
   assessment_completed: { type: Boolean },
-  ongoing_treatment: { type: Boolean },
   assessment_date: { type: Date, default: null },
   assessment_paid: { type: Boolean },
   skip_assessment: { type: Boolean },
@@ -25,10 +23,9 @@ const clinicInfoSchema = new mongoose.Schema({
 });
 
 const cliniVariablesSchema = new mongoose.Schema({
-  can_treat: { type: Boolean, default: false },
-  treatment_duration: { type: String },
-  start_time: { Date },
-  end_time: { Date },
+  case_type: {type: String, default: null},
+  treatment_duration: { type: String, default: null },
+  start_time: { type: Date, default: null },
 });
 
 const patientSchema = new mongoose.Schema({
@@ -62,8 +59,8 @@ const patientSchema = new mongoose.Schema({
     },
   ],
   refferal_code: { type: String },
-  current_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
-  last_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
+  current_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", default: null },
+  last_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", default: null },
   treatment_info: {
     type: treatmentInfoSchema,
   },
