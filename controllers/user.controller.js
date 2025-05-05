@@ -73,7 +73,7 @@ export const add_update_customer = async (req, res) => {
   const { id, f_name, l_name, email, phone, address } = req.body;
 
   // verify fields
-  if ((!user_id, !f_name)) {
+  if ((!user_id || !f_name)) {
     return res.status(500).json({ message: "Enter all required fields" });
   }
 
@@ -244,7 +244,7 @@ export const update_pen_patients = async (req, res) => {
       (p) => p.toString() === patient
     );
     if (patientExists) {
-      return res.json({ message: "Patient already exist", doctor: 'doc' });
+      return res.json({ message: "Patient already exist", doctor: "doc" });
     }
 
     const _doctor = await Doctor.findByIdAndUpdate(
@@ -299,9 +299,7 @@ export const update_ong_patients = async (req, res) => {
       return res.status(500).json({ message: "Doctor does not exist" });
     }
     // check if patient.patient exist in pen patients array
-    const patientExists = userExists.ong_patients.some(
-      (p) => p === patient
-    );
+    const patientExists = userExists.ong_patients.some((p) => p === patient);
     if (patientExists) {
       return res.status(500).json({ message: "Patient already exist" });
     }
@@ -438,7 +436,7 @@ export const remove_pen_patients = async (req, res) => {
     const _doctor = await Doctor.findByIdAndUpdate(
       doctor,
       {
-        $pull: { pen_patients:  patient },
+        $pull: { pen_patients: patient },
       },
       { new: true }
     );
@@ -494,7 +492,7 @@ export const remove_ong_patients = async (req, res) => {
     const _doctor = await Doctor.findByIdAndUpdate(
       doctor,
       {
-        $pull: { ong_patients:  patient  },
+        $pull: { ong_patients: patient },
       },
       { new: true }
     );

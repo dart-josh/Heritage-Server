@@ -1,7 +1,7 @@
 import express from "express"
 import { add_update_health, delete_all_health_data, delete_health_data, finish_health, get_health_by_patient_id } from "../controllers/universal.controller.js";
 
-import {run_con} from "../utils/utils.js";
+// import {run_con} from "../utils/utils.js";
 
 const router = express.Router();
 

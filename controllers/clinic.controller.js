@@ -17,7 +17,7 @@ export const get_all_accessory_requests = async (req, res) => {
     const accessoryRequests = await AccessoryRequest.find({})
       .populate("patient")
       .populate("doctor")
-      .populate("accessories.acccossory");
+      .populate("accessories.accessory");
     res.json({ accessoryRequests });
   } catch (error) {
     console.log(
@@ -146,14 +146,14 @@ export const get_all_patients = async (req, res) => {
 
 // get patient by id
 export const get_patient_by_id = async (req, res) => {
-  const { patient_id } = req.body;
+  const { patient_key } = req.body;
 
   try {
-    const patients = await Patient.find({ patient_id })
+    const patient = await Patient.findById(patient_key)
       .populate("current_doctor")
       .populate("last_doctor")
       .populate("assessment_info.equipment");
-    res.json({ patients });
+    res.json({ patient });
   } catch (error) {
     console.log("Error in get_patient_by_id controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
@@ -203,7 +203,19 @@ export const add_update_accessory_request = async (req, res) => {
         accessories,
       });
 
-      res.json({ message: "Accessory Request Sent", request });
+      const populated_request = await request.populate([
+        { path: "patient" },
+        { path: "doctor" },
+        { path: "accessories.accessory" },
+      ]);
+
+      res.json({
+        message: "Accessory Request Sent",
+        request: populated_request,
+      });
+
+      //? emit
+      io.emit("AccessoryRequest", populated_request);
     }
 
     // else UPDATE
@@ -229,11 +241,17 @@ export const add_update_accessory_request = async (req, res) => {
         { new: true }
       );
 
-      res.json({ message: "Request Updated", request });
-    }
+      const populated_request = await request.populate([
+        { path: "patient" },
+        { path: "doctor" },
+        { path: "accessories.accessory" },
+      ]);
 
-    //? emit
-    io.emit("AccessoryRequest");
+      res.json({ message: "Request Updated", request: populated_request });
+
+      //? emit
+      io.emit("AccessoryRequest", populated_request);
+    }
   } catch (error) {
     console.log("Error in add_update_accessory_request: ", error.message);
     res
@@ -587,7 +605,7 @@ export const add_update_patient = async (req, res) => {
         { path: "last_doctor" },
         { path: "assessment_info.equipment" },
       ]);
-      
+
       res.json({
         message: "Patient Updated Successfully",
         patient: populated_patient,
@@ -832,9 +850,6 @@ export const update_assessment_info = async (req, res) => {
     // equipment,
   };
 
-  console.log(assessment_info.assessment_date);
-  // check if assessment_date == today => Update => else add
-
   try {
     const patient_data = await Patient.findByIdAndUpdate(
       patient,
@@ -1064,12 +1079,30 @@ export const update_clinic_invoice = async (req, res) => {
     return res.status(500).json({ message: "Patient does not exist" });
   }
 
+  clinic_invoice.date = getTimezoneOffset(clinic_invoice.date);
+
   try {
-    const patient_data = await Patient.findByIdAndUpdate(patient, {
-      $push: { clinic_invoice },
+    const patient_data = await Patient.findByIdAndUpdate(
+      patient,
+      {
+        $push: { clinic_invoice },
+      },
+      { new: true }
+    );
+
+    const populated_patient = await patient_data.populate([
+      { path: "current_doctor" },
+      { path: "last_doctor" },
+      { path: "assessment_info.equipment" },
+    ]);
+
+    res.json({
+      message: "Clinic Invoice Updated Successfully",
+      patient_data: populated_patient,
     });
 
-    res.json({ message: "Clinic Invoice Updated Successfully", patient_data });
+    //? emit
+    io.emit("Patient", populated_patient);
   } catch (error) {
     console.log("Error in update_clinic_invoice: ", error.message);
     res
@@ -1105,7 +1138,7 @@ export const delete_accessory_request = async (req, res) => {
     await AccessoryRequest.findByIdAndDelete(id);
 
     //? emit
-    io.emit("AccessoryRequest");
+    io.emit("AccessoryRequestD", id);
 
     res.json({ message: "Request deleted Sucessfully" });
   } catch (error) {
@@ -1122,7 +1155,7 @@ export const delete_all_accessory_request = async (req, res) => {
     await AccessoryRequest.deleteMany({});
 
     //? emit
-    io.emit("AccessoryRequest");
+    io.emit("AccessoryRequestDA");
 
     res.json({ message: "Request list cleared" });
   } catch (error) {
@@ -1236,11 +1269,6 @@ export const delete_patient = async (req, res) => {
 
 // ? UTILS
 
-// send patient to clinic
-export const send_patient_to_clinic = async (req, res) => {
-  const { patient } = req.params;
-};
-
 // generate patient_id
 export const generate_patient_id = async (req, res) => {
   var all_ids = [];
@@ -1263,7 +1291,7 @@ export const generate_patient_id = async (req, res) => {
 
   if (all_ids.length > 0) {
     new_id = Math.max(...all_ids);
-  } 
+  }
 
   new_id++;
   return res.json({

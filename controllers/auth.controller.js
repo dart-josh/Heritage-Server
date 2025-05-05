@@ -48,13 +48,11 @@ export const login = async (req, res) => {
       // remove password
       userExists.password = undefined;
 
-      return res
-        .status(200)
-        .json({
-          message: "Password created successfully",
-          login: true,
-          user: userExists,
-        });
+      return res.status(200).json({
+        message: "Password created successfully",
+        login: true,
+        user: userExists,
+      });
     }
 
     const isMatch = await bcrypt.compare(password, userExists.password);
@@ -66,14 +64,12 @@ export const login = async (req, res) => {
     userExists.password = undefined;
 
     // login
-    return res
-      .status(200)
-      .json({
-        message: "Login Successful",
-        userExists,
-        login: true,
-        user: userExists,
-      });
+    return res.status(200).json({
+      message: "Login Successful",
+      userExists,
+      login: true,
+      user: userExists,
+    });
   } catch (error) {
     console.log("Error in login controller: ", error.message);
     res
@@ -233,13 +229,11 @@ export const create_password = async (req, res) => {
     staffExists.password = await bcrypt.hash(password, salt);
     staffExists.pin = undefined;
     await staffExists.save();
-    return res
-      .status(200)
-      .json({
-        message: "Password created successfully",
-        mode: 0,
-        role: staffExists.role,
-      });
+    return res.status(200).json({
+      message: "Password created successfully",
+      mode: 0,
+      role: staffExists.role,
+    });
   } catch (error) {
     console.log("Error in create_password: ", error.message);
     res

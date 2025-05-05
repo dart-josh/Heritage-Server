@@ -100,7 +100,7 @@ const patientSchema = new mongoose.Schema({
       session_frequency: { type: String },
     },
   ],
-  invoices: [
+  clinic_invoice: [
     {
       invoice_id: { type: String, required: true },
       invoice_type: { type: String, required: true },

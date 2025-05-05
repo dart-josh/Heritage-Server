@@ -25,6 +25,7 @@ import {
   update_clinic_info,
   update_treatment_info,
   update_clinic_variables,
+  update_clinic_invoice,
 } from "../controllers/clinic.controller.js";
 
 const router = express.Router();
@@ -49,6 +50,7 @@ router.post("/update_clinic_variables", update_clinic_variables);
 router.post("/update_assessment_info", update_assessment_info);
 router.post("/update_clinic_info", update_clinic_info);
 router.post("/update_clinic_history", update_clinic_history);
+router.post("/update_clinic_invoice", update_clinic_invoice);
 
 router.delete("/delete_accessory_request/:id", delete_accessory_request);
 router.delete("/delete_all_accessory_request", delete_all_accessory_request);

@@ -7,7 +7,7 @@ const accessoryRequestSchema = new mongoose.Schema(
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor" },
     accessories: [
       {
-        acccossory: { type: mongoose.Schema.Types.ObjectId, ref: "Accessory" },
+        accessory: { type: mongoose.Schema.Types.ObjectId, ref: "Accessory" },
         qty: { type: Number, required: true },
       },
     ],

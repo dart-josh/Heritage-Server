@@ -1,7 +1,7 @@
-import express from 'express'
-import dotenv from 'dotenv'
-import { connectDB } from './config/db.js';
-import cors from 'cors'
+import express from "express";
+import dotenv from "dotenv";
+import { connectDB } from "./config/db.js";
+import cors from "cors";
 import { app, server } from "./socket/socket.js";
 import clinicRoutes from "./routes/clinic.route.js";
 import salesRoutes from "./routes/sales.route.js";
@@ -22,26 +22,22 @@ dotenv.config();
 
 const PORT = process.env.PORT || 3001;
 
-app.use(express.json()); // allows you to parse json from req.body
+app.use(express.json());
 
 // ROUTES
-app.use("/api/clinic", clinicRoutes)
-app.use("/api/sales", salesRoutes)
-app.use("/api/universal", universalRoutes)
-app.use("/api/user", userRoutes)
-app.use("/api/auth", authRoutes)
+app.use("/api/clinic", clinicRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/universal", universalRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/auth", authRoutes);
 
 app.use("*", (req, res) => {
-  res.send('Not Allowed');
-})
-
+  res.status(404).send("Not Allowed");
+});
 
 // LISTENER
 server.listen(PORT, () => {
   console.log("Server started on port", PORT);
 
   connectDB();
-
-  // start listeners
-  // db_listeners();
 });

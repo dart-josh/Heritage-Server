@@ -4,10 +4,16 @@ const salesRecordSchema = new mongoose.Schema(
   {
     order_id: { type: String, required: true, unique: true },
     date: { type: Date, required: true },
-    items: [{ item: {type: mongoose.Schema.Types.ObjectId, ref: "Accessory"}, qty: { type: Number, required: true } }],
+    accessories: [
+      {
+        accessory: { type: mongoose.Schema.Types.ObjectId, ref: "Accessory" },
+        qty: { type: Number, required: true },
+      },
+    ],
     order_price: { type: Number, required: true },
     order_qty: { type: Number, required: true },
     customer: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+    patient: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
     discount_price: { type: Number },
     shortNote: {
       type: String,
