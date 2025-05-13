@@ -23,7 +23,7 @@ const clinicInfoSchema = new mongoose.Schema({
 });
 
 const cliniVariablesSchema = new mongoose.Schema({
-  case_type: {type: String, default: null},
+  case_type: { type: String, default: null },
   treatment_duration: { type: String, default: null },
   start_time: { type: Date, default: null },
 });
@@ -41,6 +41,8 @@ const patientSchema = new mongoose.Schema({
   email: { type: String },
   address: { type: String },
   gender: { type: String },
+  marrital_status: { type: String },
+  religion: { type: String },
   dob: { type: String },
   age: { type: String },
   occupation: { type: String },
@@ -59,8 +61,16 @@ const patientSchema = new mongoose.Schema({
     },
   ],
   refferal_code: { type: String },
-  current_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", default: null },
-  last_doctor: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", default: null },
+  current_doctor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+    default: null,
+  },
+  last_doctor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Doctor",
+    default: null,
+  },
   treatment_info: {
     type: treatmentInfoSchema,
   },
@@ -88,7 +98,12 @@ const patientSchema = new mongoose.Schema({
       hist_type: {
         type: String,
         required: true,
-        enum: ["Assessment payment", "Session payment", "Session setup", "Session added"],
+        enum: [
+          "Assessment payment",
+          "Session payment",
+          "Session setup",
+          "Session added",
+        ],
       },
       amount: { type: Number },
       amount_b4_discount: { type: Number },
@@ -117,7 +132,11 @@ const patientSchema = new mongoose.Schema({
     },
   ],
   total_amount_paid: { type: Number },
-  current_case_id: {type: mongoose.Schema.Types.ObjectId, ref: "CaseFile", default: null},
+  current_case_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "CaseFile",
+    default: null,
+  },
 });
 
 const Patient = mongoose.model("Patient", patientSchema);

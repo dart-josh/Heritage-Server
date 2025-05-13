@@ -4,7 +4,7 @@ import CaseFile from "../models/clinic.model/case_file.model.js";
 import Equipement from "../models/clinic.model/equipment.model.js";
 import Patient from "../models/clinic.model/patient.model.js";
 import Accessory from "../models/sales.model/accessory.model.js";
-import { generate_nano_id, getTimezoneOffset } from "../utils/utils.js";
+import { generate_nano_id, get_date, getTimezoneOffset } from "../utils/utils.js";
 import { io } from "../socket/socket.js";
 import Equipment from "../models/clinic.model/equipment.model.js";
 import Doctor from "../models/user.model/doctor.model.js";
@@ -488,6 +488,8 @@ export const add_update_patient = async (req, res) => {
     email,
     address,
     gender,
+    marrital_status,
+    religion,
     dob,
     age,
     occupation,
@@ -527,6 +529,8 @@ export const add_update_patient = async (req, res) => {
         email,
         address,
         gender,
+        marrital_status,
+        religion,
         dob,
         age,
         occupation,
@@ -586,6 +590,8 @@ export const add_update_patient = async (req, res) => {
           email,
           address,
           gender,
+          marrital_status,
+          religion,
           dob,
           age,
           occupation,
@@ -816,7 +822,6 @@ export const update_assessment_info = async (req, res) => {
     case_type,
     treatment_type,
     assessment_date,
-    equipment,
   } = req.body;
 
   if (!case_select) {
@@ -851,6 +856,20 @@ export const update_assessment_info = async (req, res) => {
   };
 
   try {
+    console.log(get_date(assessment_date));
+    const infoExists = patientExists.assessment_info.some(
+          (i) => get_date(i.assessment_date) === get_date(assessment_date)
+        );
+    
+          // increase patient session count
+          // const _doctor = await Doctor.findByIdAndUpdate(
+          //   doctor,
+          //   {
+          //     $inc: { "my_patients.$[elem].session_count": 1 },
+          //   },
+          //   { new: true, arrayFilters: [{ "elem.patient": patient.patient }] }
+          // );
+
     const patient_data = await Patient.findByIdAndUpdate(
       patient,
       {

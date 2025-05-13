@@ -30,6 +30,16 @@ export const getTimezoneOffset = (date) => {
   return newDate;
 };
 
+export const get_date = (date) => {
+  if (!date) {
+    return null;
+  }
+
+  const newDate = new Date(date);
+
+  return newDate.toString().split('T')[0];
+}
+
 
 
 //!

@@ -44,7 +44,7 @@ export const get_sales_record = async (req, res) => {
     const salesRecord = await SalesRecord.find({})
       .populate("accessories.accessory")
       .populate("customer")
-      .populate("Patient")
+      .populate("patient")
       .populate("soldBy")
       .sort({ date: -1 });
 
@@ -63,11 +63,13 @@ export const get_accessory_restock_record = async (req, res) => {
       .populate("enteredBy")
       .populate("verifiedBy")
       .sort({ date: -1 });
-
-
+    
     res.status(200).json({ record });
   } catch (error) {
-    console.log("Error in get_accessory_restock_record controller:", error.message);
+    console.log(
+      "Error in get_accessory_restock_record controller:",
+      error.message
+    );
     return res.status(500).send({ message: "Internal Server error" });
   }
 };
@@ -276,14 +278,14 @@ export const add_sales_record = async (req, res) => {
     // Update all accessories (decrease quantity)
     for (let index = 0; index < accessories.length; index++) {
       const accessory = accessories[index];
-      var res = await update_accessory_quantity(
+      var resP = await update_accessory_quantity(
         accessory.accessory,
         accessory.qty,
         false
       );
 
       //? emit
-      io.emit("Accessory", res["accessory"]);
+      io.emit("Accessory", resP["accessory"]);
     }
 
     const populatedRecord = await salesRecord.populate([
@@ -301,7 +303,7 @@ export const add_sales_record = async (req, res) => {
     // emit event to notify all clients
     io.emit("SalesRecord", populatedRecord);
   } catch (error) {
-    console.log("Error in add_update_sales_record controller:", error.message);
+    console.log("Error in add_sales_record controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
   }
 };
@@ -373,7 +375,7 @@ export const add_update_accessory_restock_record = async (req, res) => {
       ]);
 
       res.json({
-        message: "Sales Record Created Successfully",
+        message: "Accessory Restock Entry Submited",
         restockRecord: populatedRecord,
       });
 
@@ -386,7 +388,6 @@ export const add_update_accessory_restock_record = async (req, res) => {
       const restockRecord = await RestockAccessoryRecord.findByIdAndUpdate(
         id,
         {
-          date: getTimezoneOffset(date),
           accessories,
           order_qty,
           shortNote,
@@ -402,7 +403,7 @@ export const add_update_accessory_restock_record = async (req, res) => {
       ]);
 
       res.json({
-        message: "Sales Record Updated Successfully",
+        message: "Accessory Restock Entry Updated",
         restockRecord: populatedRecord,
       });
 
@@ -474,14 +475,14 @@ export const verify_accessory_restock_record = async (req, res) => {
   // Update all accessories (increase quantity)
   for (let index = 0; index < accessories.length; index++) {
     const accessory = accessories[index];
-    var res = await update_accessory_quantity(
+    var resP = await update_accessory_quantity(
       accessory.accessory,
       accessory.qty,
       true
     );
 
     //? emit
-    io.emit("Accessory", res["accessory"]);
+    io.emit("Accessory", resP["accessory"]);
   }
 
   const date = new Date();
@@ -566,29 +567,31 @@ export const delete_sales_record = async (req, res) => {
   }
 
   try {
-    const salesRecord = await SalesRecord.findByIdAndDelete(id);
+    const salesRecord = await SalesRecord.findById(id);
 
     if (!salesRecord) {
       return res.status(404).json({ message: "Sales Record not found" });
     }
 
+    await SalesRecord.findByIdAndDelete(id);
+
     // Update all accessories (increase quantity)
     for (let index = 0; index < salesRecord.accessories.length; index++) {
       const accessory = salesRecord.accessories[index];
-      var res = await update_accessory_quantity(
+      var resP = await update_accessory_quantity(
         accessory.accessory,
         accessory.qty,
         true
       );
 
       //? emit
-      io.emit("Accessory", res["accessory"]);
+      io.emit("Accessory", resP["accessory"]);
     }
 
     res.json({ message: "Sales Record Deleted Successfully", id });
 
     // emit event to notify all clients
-    io.emit("SalesRecord", id);
+    io.emit("SalesRecordD", id);
   } catch (error) {
     console.log("Error in delete_sales_record controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
@@ -598,7 +601,7 @@ export const delete_sales_record = async (req, res) => {
 // delete accessory restock record
 export const delete_accessory_restock_record = async (req, res) => {
   const { id } = req.params;
-  const { isAllowed } = req.ody;
+  const { isAllowed } = req.body;
 
   if (!id) {
     return res.status(500).json({ message: "Record ID required" });
@@ -630,14 +633,14 @@ export const delete_accessory_restock_record = async (req, res) => {
         // Update all accessories (decrease quantity)
         for (let index = 0; index < accessories.length; index++) {
           const accessory = accessories[index];
-          var res = await update_accessory_quantity(
+          var resP = await update_accessory_quantity(
             accessory.accessory,
             accessory.qty,
             false
           );
 
           //? emit
-          io.emit("Accessory", res["accessory"]);
+          io.emit("Accessory", resP["accessory"]);
         }
       }
     }
