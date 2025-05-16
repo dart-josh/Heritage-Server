@@ -623,6 +623,7 @@ export const add_update_user = async (req, res) => {
       );
 
       user.password = undefined;
+      user.pin = undefined;
 
       res.json({ message: "User Updated Successfully", user });
 

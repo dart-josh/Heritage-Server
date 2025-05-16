@@ -34,10 +34,8 @@ export const get_date = (date) => {
   if (!date) {
     return null;
   }
-
-  const newDate = new Date(date);
-
-  return newDate.toString().split('T')[0];
+  
+  return date.toString().split('T')[0];
 }
 
 

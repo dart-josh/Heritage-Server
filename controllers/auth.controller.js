@@ -48,6 +48,9 @@ export const login = async (req, res) => {
       // remove password
       userExists.password = undefined;
 
+      if (userExists.pin) userExists.pin = true;
+      else userExists.pin = false;
+
       return res.status(200).json({
         message: "Password created successfully",
         login: true,
@@ -62,6 +65,9 @@ export const login = async (req, res) => {
 
     // remove password
     userExists.password = undefined;
+
+    if (userExists.pin) userExists.pin = true;
+    else userExists.pin = null;
 
     // login
     return res.status(200).json({
@@ -78,6 +84,113 @@ export const login = async (req, res) => {
   }
 };
 
+//? check pin
+export const check_pin = async (req, res) => {
+  const { user_id, pin } = req.body;
+
+  if (!user_id || !pin) {
+    return res.status(500).json({ message: "Invalid details" });
+  }
+
+  if (pin.length < 4) {
+    return res
+      .status(500)
+      .json({ message: "Pin must be at least 4 characters" });
+  }
+
+  try {
+    const userExists = await User.findOne({ user_id });
+    if (!userExists) {
+      return res.status(500).json({ message: "Invalid User ID" });
+    }
+
+    // active account
+    if (!userExists.can_sign_in) {
+      return res.status(500).json({ message: "Inactive account" });
+    }
+
+    // if pin does not exist
+    if (!userExists.pin) {
+      const salt = await bcrypt.genSalt(10);
+      userExists.pin = await bcrypt.hash(pin, salt);
+      await userExists.save();
+
+      return res.status(200).json({
+        message: "Pin created successfully",
+        login: true,
+      });
+    }
+
+    const isMatch = await bcrypt.compare(pin, userExists.pin);
+    if (!isMatch) {
+      return res.status(500).json({ message: "Incorrect pin" });
+    }
+
+    // login
+    return res.status(200).json({ message: "Pin Valid", login: true });
+  } catch (error) {
+    console.log("Error in check_pin: ", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal Server error", error: error.message });
+  }
+};
+
+// reset password
+export const reset_password = async (req, res) => {
+  const { id: user_id } = req.params;
+
+  if (!user_id) {
+    return res.status(500).json({ message: "User ID is required" });
+  }
+
+  try {
+    const userExists = await User.findOne({ user_id });
+    if (!userExists) {
+      return res.status(500).json({ message: "Invalid User ID" });
+    }
+
+    // delete password from database
+    await User.updateOne({ user_id }, { password: null, pin: null });
+
+    return res.status(200).json({ message: "Password reset successfully", success: true });
+  } catch (error) {
+    console.log("Error in reset_password: ", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal Server error", error: error.message });
+  }
+};
+
+// reset pin
+export const reset_pin = async (req, res) => {
+  const { id: user_id } = req.params;
+
+  if (!user_id) {
+    return res.status(500).json({ message: "User ID is required" });
+  }
+
+  try {
+    const userExists = await User.findOne({ user_id });
+    if (!userExists) {
+      return res.status(500).json({ message: "Invalid User ID" });
+    }
+
+    // delete pin from database
+    await User.updateOne({ user_id }, { pin: null });
+
+    return res.status(200).json({ message: "Pin reset successfully", success: true });
+  } catch (error) {
+    console.log("Error in reset_pin: ", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal Server error", error: error.message });
+  }
+};
+
+
+//?
+
 // check staff id
 export const check_staff_id = async (req, res) => {
   const { user_id } = req.body;
@@ -87,7 +200,7 @@ export const check_staff_id = async (req, res) => {
   }
 
   try {
-    const staffExists = await Staff.findOne({ staffId });
+    const staffExists = await User.findOne({ staffId });
     // invalid id
     if (!staffExists) {
       return res.status(500).json({ message: "Invalid Staff ID" });
@@ -155,49 +268,6 @@ export const check_password = async (req, res) => {
       .json({ message: "Login Valid", mode: 0, role: staffExists.role });
   } catch (error) {
     console.log("Error in check_password: ", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server error", error: error.message });
-  }
-};
-
-// check pin
-export const check_pin = async (req, res) => {
-  const { staffId, pin } = req.body;
-
-  if (!staffId || !pin) {
-    return res.status(500).json({ message: "Invalid details" });
-  }
-
-  try {
-    const staffExists = await Staff.findOne({ staffId });
-    if (!staffExists) {
-      return res.status(500).json({ message: "Invalid Staff ID" });
-    }
-
-    // active account
-    if (!staffExists.active) {
-      return res.status(500).json({ message: "Inactive account" });
-    }
-
-    // if pin does not exist
-    if (!staffExists.pin) {
-      return res.status(200).json({ message: "Create pin", mode: 1 });
-    }
-
-    const isMatch = pin == staffExists.pin;
-    if (!isMatch) {
-      return res.status(500).json({ message: "Incorrect pin" });
-    }
-
-    // remove password
-    staffExists.password = undefined;
-    staffExists.pin = undefined;
-
-    // login
-    return res.status(200).json({ message: "Login Valid", mode: 0 });
-  } catch (error) {
-    console.log("Error in check_pin: ", error.message);
     res
       .status(500)
       .json({ message: "Internal Server error", error: error.message });
@@ -274,57 +344,7 @@ export const create_pin = async (req, res) => {
   }
 };
 
-// reset password
-export const reset_password = async (req, res) => {
-  const { id: staffId } = req.params;
 
-  if (!staffId) {
-    return res.status(500).json({ message: "Staff ID is required" });
-  }
-
-  try {
-    const staffExists = await Staff.findOne({ staffId });
-    if (!staffExists) {
-      return res.status(500).json({ message: "Invalid Staff ID" });
-    }
-
-    // delete password from database
-    await Staff.updateOne({ staffId }, { password: null, pin: null });
-
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.log("Error in reset_password: ", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server error", error: error.message });
-  }
-};
-
-// reset pin
-export const reset_pin = async (req, res) => {
-  const { id: staffId } = req.params;
-
-  if (!staffId) {
-    return res.status(500).json({ message: "Staff ID is required" });
-  }
-
-  try {
-    const staffExists = await Staff.findOne({ staffId });
-    if (!staffExists) {
-      return res.status(500).json({ message: "Invalid Staff ID" });
-    }
-
-    // delete pin from database
-    await Staff.updateOne({ staffId }, { pin: null });
-
-    return res.status(200).json({ message: "Pin reset successfully" });
-  } catch (error) {
-    console.log("Error in reset_pin: ", error.message);
-    res
-      .status(500)
-      .json({ message: "Internal Server error", error: error.message });
-  }
-};
 
 // get active staff
 export const get_active_staff = async (req, res) => {

@@ -4,7 +4,11 @@ import CaseFile from "../models/clinic.model/case_file.model.js";
 import Equipement from "../models/clinic.model/equipment.model.js";
 import Patient from "../models/clinic.model/patient.model.js";
 import Accessory from "../models/sales.model/accessory.model.js";
-import { generate_nano_id, get_date, getTimezoneOffset } from "../utils/utils.js";
+import {
+  generate_nano_id,
+  get_date,
+  getTimezoneOffset,
+} from "../utils/utils.js";
 import { io } from "../socket/socket.js";
 import Equipment from "../models/clinic.model/equipment.model.js";
 import Doctor from "../models/user.model/doctor.model.js";
@@ -47,7 +51,14 @@ export const get_case_file_by_patient = async (req, res) => {
   try {
     const caseFiles = await CaseFile.find({ patient })
       .populate("patient")
-      .populate("doctor");
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      });
+
     res.json({ caseFiles });
   } catch (error) {
     console.log("Error in get_case_file_by_patient controller:", error.message);
@@ -61,7 +72,14 @@ export const get_case_file_by_date = async (req, res) => {
   try {
     const caseFiles = await CaseFile.find({ patient, treatment_date })
       .populate("patient")
-      .populate("doctor");
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      });
+
     res.json({ caseFiles });
   } catch (error) {
     console.log("Error in get_case_file_by_date controller:", error.message);
@@ -95,7 +113,13 @@ export const get_case_file_by_id = async (req, res) => {
   try {
     const caseFile = await CaseFile.findById(case_id)
       .populate("patient")
-      .populate("doctor");
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      });
 
     if (!caseFile) {
       return res.status(500).json({ message: "Case file not found" });
@@ -127,7 +151,13 @@ export const get_all_equipments = async (req, res) => {
 export const get_all_patients = async (req, res) => {
   try {
     const patients = await Patient.find({})
-      .populate("current_doctor")
+      .populate({
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      })
       .populate("last_doctor")
       // .populate("current_doctor.user")
       .populate("assessment_info.equipment");
@@ -150,7 +180,13 @@ export const get_patient_by_id = async (req, res) => {
 
   try {
     const patient = await Patient.findById(patient_key)
-      .populate("current_doctor")
+      .populate({
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      })
       .populate("last_doctor")
       .populate("assessment_info.equipment");
     res.json({ patient });
@@ -315,16 +351,26 @@ export const add_update_case_file = async (req, res) => {
         { path: "doctor" },
       ]);
 
+      const populated_caseFile_2 = await populated_caseFile.populate([
+        { path: "doctor.user", select: "-password -pin" },
+      ]);
+
       const populated_patient = await patient_new.populate([
-        { path: "current_doctor" },
+        {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
         { path: "last_doctor" },
         { path: "assessment_info.equipment" },
       ]);
 
-      res.json({ message: "Case File Opened", caseFile: populated_caseFile });
+      res.json({ message: "Case File Opened", caseFile: populated_caseFile_2 });
 
       //? emit
-      io.emit("CaseFile", populated_caseFile);
+      io.emit("CaseFile", populated_caseFile_2);
       io.emit("Patient", populated_patient);
     }
 
@@ -371,16 +417,29 @@ export const add_update_case_file = async (req, res) => {
         { path: "doctor" },
       ]);
 
+      const populated_caseFile_2 = await populated_caseFile.populate([
+        { path: "doctor.user", select: "-password -pin" },
+      ]);
+
       const populated_patient = await patient_data.populate([
-        { path: "current_doctor" },
+        {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
         { path: "last_doctor" },
         { path: "assessment_info.equipment" },
       ]);
 
-      res.json({ message: "Case File updated", caseFile: populated_caseFile });
+      res.json({
+        message: "Case File updated",
+        caseFile: populated_caseFile_2,
+      });
 
       //? emit
-      io.emit("CaseFile", populated_caseFile);
+      io.emit("CaseFile", populated_caseFile_2);
       io.emit("Patient", populated_patient);
     }
   } catch (error) {
@@ -544,7 +603,13 @@ export const add_update_patient = async (req, res) => {
       });
 
       const populated_patient = await patient.populate([
-        { path: "current_doctor" },
+        {
+          path: "current_doctor",
+          populate: {
+            path: "user",
+            select: "-password -pin",
+          },
+        },
         { path: "last_doctor" },
         { path: "assessment_info.equipment" },
       ]);
@@ -607,7 +672,13 @@ export const add_update_patient = async (req, res) => {
       );
 
       const populated_patient = await patient.populate([
-        { path: "current_doctor" },
+        {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
         { path: "last_doctor" },
         { path: "assessment_info.equipment" },
       ]);
@@ -649,7 +720,13 @@ export const complete_base_line = async (req, res) => {
     });
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -721,7 +798,13 @@ export const assign_current_doctor = async (req, res) => {
     }
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -791,7 +874,13 @@ export const update_treatment_info = async (req, res) => {
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -856,30 +945,32 @@ export const update_assessment_info = async (req, res) => {
   };
 
   try {
-    console.log(get_date(assessment_date));
-    const infoExists = patientExists.assessment_info.some(
-          (i) => get_date(i.assessment_date) === get_date(assessment_date)
-        );
-    
-          // increase patient session count
-          // const _doctor = await Doctor.findByIdAndUpdate(
-          //   doctor,
-          //   {
-          //     $inc: { "my_patients.$[elem].session_count": 1 },
-          //   },
-          //   { new: true, arrayFilters: [{ "elem.patient": patient.patient }] }
-          // );
+    const docIndex = patientExists.assessment_info.findIndex(
+      (i) =>
+        get_date(i.assessment_date.toISOString()) ===
+        get_date(assessment_info.assessment_date.toISOString())
+    );
 
     const patient_data = await Patient.findByIdAndUpdate(
       patient,
-      {
-        $push: { assessment_info },
-      },
+      docIndex == -1
+        ? {
+            $push: { assessment_info },
+          }
+        : {
+            $set: { [`assessment_info.${docIndex}`]: assessment_info },
+          },
       { new: true }
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -946,7 +1037,13 @@ export const update_clinic_info = async (req, res) => {
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -1002,7 +1099,13 @@ export const update_clinic_variables = async (req, res) => {
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -1059,7 +1162,13 @@ export const update_clinic_history = async (req, res) => {
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
@@ -1110,7 +1219,13 @@ export const update_clinic_invoice = async (req, res) => {
     );
 
     const populated_patient = await patient_data.populate([
-      { path: "current_doctor" },
+      {
+        path: "current_doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      },
       { path: "last_doctor" },
       { path: "assessment_info.equipment" },
     ]);
