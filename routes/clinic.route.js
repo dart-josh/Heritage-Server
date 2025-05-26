@@ -26,6 +26,7 @@ import {
   update_treatment_info,
   update_clinic_variables,
   update_clinic_invoice,
+  get_payment_record,
 } from "../controllers/clinic.controller.js";
 
 const router = express.Router();
@@ -38,6 +39,7 @@ router.post('/get_case_file_by_id', get_case_file_by_id);
 router.get("/get_all_equipments", get_all_equipments);
 router.get("/get_all_patients", get_all_patients);
 router.post("/get_patient_by_id", get_patient_by_id);
+router.get("/get_payment_record", get_payment_record);
 
 router.post("/add_update_accessory_request", add_update_accessory_request);
 router.post("/add_update_case_file", add_update_case_file);

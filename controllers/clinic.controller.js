@@ -12,6 +12,7 @@ import {
 import { io } from "../socket/socket.js";
 import Equipment from "../models/clinic.model/equipment.model.js";
 import Doctor from "../models/user.model/doctor.model.js";
+import Payment from "../models/clinic.model/payment.model.js";
 
 // ? GETTERS
 
@@ -37,8 +38,17 @@ export const get_all_case_files = async (req, res) => {
   try {
     const caseFiles = await CaseFile.find({})
       .populate("patient")
-      .populate("doctor");
-    res.json({ caseFiles });
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "user",
+          select: "-password -pin",
+        },
+      });
+
+      console.log(caseFiles)
+
+    res.json({ caseFiles});
   } catch (error) {
     console.log("Error in get_all_case_files controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
@@ -159,17 +169,23 @@ export const get_all_patients = async (req, res) => {
         },
       })
       .populate("last_doctor")
-      // .populate("current_doctor.user")
-      .populate("assessment_info.equipment");
-
-    // const patients = await patients_x. populate([
-    //   { path: "current_doctor.user" },
-    //   { path: "last_doctor.user" },
-    // ]);
+      .populate("clinic_history");
 
     res.json({ patients });
   } catch (error) {
     console.log("Error in get_all_patients controller:", error.message);
+    return res.status(500).send({ message: "Internal Server error" });
+  }
+};
+
+// get payment record
+export const get_payment_record = async (req, res) => {
+  try {
+    const payments = await Payment.find({}).populate("patient");
+
+    res.json({ payments });
+  } catch (error) {
+    console.log("Error in get_payment_record controller:", error.message);
     return res.status(500).send({ message: "Internal Server error" });
   }
 };
@@ -188,7 +204,8 @@ export const get_patient_by_id = async (req, res) => {
         },
       })
       .populate("last_doctor")
-      .populate("assessment_info.equipment");
+      .populate("clinic_history");
+
     res.json({ patient });
   } catch (error) {
     console.log("Error in get_patient_by_id controller:", error.message);
@@ -357,14 +374,14 @@ export const add_update_case_file = async (req, res) => {
 
       const populated_patient = await patient_new.populate([
         {
-        path: "current_doctor",
-        populate: {
-          path: "user",
-          select: "-password -pin",
+          path: "current_doctor",
+          populate: {
+            path: "user",
+            select: "-password -pin",
+          },
         },
-      },
         { path: "last_doctor" },
-        { path: "assessment_info.equipment" },
+        { path: "clinic_history" },
       ]);
 
       res.json({ message: "Case File Opened", caseFile: populated_caseFile_2 });
@@ -423,14 +440,14 @@ export const add_update_case_file = async (req, res) => {
 
       const populated_patient = await patient_data.populate([
         {
-        path: "current_doctor",
-        populate: {
-          path: "user",
-          select: "-password -pin",
+          path: "current_doctor",
+          populate: {
+            path: "user",
+            select: "-password -pin",
+          },
         },
-      },
         { path: "last_doctor" },
-        { path: "assessment_info.equipment" },
+        { path: "clinic_history" },
       ]);
 
       res.json({
@@ -611,7 +628,7 @@ export const add_update_patient = async (req, res) => {
           },
         },
         { path: "last_doctor" },
-        { path: "assessment_info.equipment" },
+        { path: "clinic_history" },
       ]);
 
       res.json({
@@ -673,14 +690,14 @@ export const add_update_patient = async (req, res) => {
 
       const populated_patient = await patient.populate([
         {
-        path: "current_doctor",
-        populate: {
-          path: "user",
-          select: "-password -pin",
+          path: "current_doctor",
+          populate: {
+            path: "user",
+            select: "-password -pin",
+          },
         },
-      },
         { path: "last_doctor" },
-        { path: "assessment_info.equipment" },
+        { path: "clinic_history" },
       ]);
 
       res.json({
@@ -728,7 +745,7 @@ export const complete_base_line = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -806,7 +823,7 @@ export const assign_current_doctor = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -882,7 +899,7 @@ export const update_treatment_info = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -913,7 +930,7 @@ export const update_assessment_info = async (req, res) => {
     assessment_date,
   } = req.body;
 
-  if (!case_select) {
+  if (!case_select && !case_select_others) {
     return res.status(500).json({ message: "Select Case" });
   }
 
@@ -972,7 +989,7 @@ export const update_assessment_info = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -1045,7 +1062,7 @@ export const update_clinic_info = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -1107,7 +1124,7 @@ export const update_clinic_variables = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -1146,10 +1163,16 @@ export const update_clinic_history = async (req, res) => {
   clinic_history.date = getTimezoneOffset(clinic_history.date);
 
   try {
+    const payment_data = await Payment.create({ ...clinic_history, patient });
+
+    if (!payment_data) {
+      return res.status(500).json({ message: "Payment unsuccessfull" });
+    }
+
     const patient_data = await Patient.findByIdAndUpdate(
       patient,
       {
-        $push: { clinic_history },
+        $push: { clinic_history: payment_data._id },
         $inc: {
           total_amount_paid:
             clinic_history.hist_type != "Session setup" &&
@@ -1170,7 +1193,8 @@ export const update_clinic_history = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
+      { path: "clinic_history" },
     ]);
 
     res.json({
@@ -1227,7 +1251,7 @@ export const update_clinic_invoice = async (req, res) => {
         },
       },
       { path: "last_doctor" },
-      { path: "assessment_info.equipment" },
+      { path: "clinic_history" },
     ]);
 
     res.json({

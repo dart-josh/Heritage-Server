@@ -11,14 +11,23 @@ import authRoutes from "./routes/auth.route.js";
 
 dotenv.config();
 
-app.use(cors({
-  origin: 'http://localhost:3303', 
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Origin', 'X-Requested-With', 'Accept', 'x-client-key', 'x-client-token', 'x-client-secret', 'Authorization'],
-  credentials: true
-}));
-
-
+app.use(
+  cors({
+    origin: "http://localhost:3303",
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Origin",
+      "X-Requested-With",
+      "Accept",
+      "x-client-key",
+      "x-client-token",
+      "x-client-secret",
+      "Authorization",
+    ],
+    credentials: true,
+  })
+);
 
 const PORT = process.env.PORT || 3001;
 
