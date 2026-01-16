@@ -1,0 +1,14 @@
+[
+    { "days_week": 2, "hmo_name": "Leadway 2", "hmo_amount": 20000 },
+  { "hmo_amount": 30000, "hmo_name": "Leadway 3", "days_week": 3 },
+
+  { "hmo_amount": 8000, "days_week": 1, "hmo_name": "Reliance 1" },
+  { "hmo_amount": 16000, "days_week": 2, "hmo_name": "Reliance 2" },
+  { "hmo_amount": 24000, "hmo_name": "Reliance 3", "days_week": 3 },
+
+  { "days_week": 2, "hmo_name": "DOT", "hmo_amount": 20000 },
+  { "hmo_name": "AXA", "days_week": 2, "hmo_amount": 20000 },
+  
+  { "hmo_amount": 10000, "hmo_name": "Bastion 1", "days_week": 1 },
+  { "hmo_amount": 20000, "days_week": 2, "hmo_name": "Bastion 2" }
+]
