@@ -3,7 +3,7 @@ import cron from "node-cron";
 import GymClient from "../models/gym.model/client.model.js";
 
 cron.schedule(
-  "12 10 * * *", // runs daily at midnight
+  "10 1 * * *", // runs daily at midnight
   async () => {
     try {
       const today = todayDDMMYYYY();

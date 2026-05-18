@@ -55,13 +55,4 @@ server.listen(PORT, () => {
   console.log("Server started on port", PORT);
 
   connectDB();
-  // clients_export.json
-  // sub.json
-  // gymhmo.json
-
-  // -------- //
-  // runDB();
-  // runDB2();
-  // runDB3();
-  // runDB4();
 });
